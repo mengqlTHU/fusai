@@ -321,48 +321,52 @@ public:
             if (depth == 1)
             {
                 preAmount = amount_arr[cur * 50 + i];
-                startAmount = amount_arr[cur * 50 + i];
+                if (v>head)
+                    dfs(head, v, depth + 1, thread_num, path_new, path_head, preAmount, preAmount);
             }
-            double amount = (double)amount_arr[cur * 50 + i];
-            // int idv = ids[v];
-            if (v == head && depth >= 3  
-                &&(amount>=0.2*preAmount && amount<=3*preAmount) 
-                &&(startAmount >= 0.2 * amount && startAmount <= 3 * amount)
-                )
+            else
             {
-                //memcpy(&ans[depth - 3][n_ans[depth - 3]++ * depth], path_new - depth, depth * sizeof(int));
-                memcpy(&ans[depth - 3][thread_num][ans_top[depth - 3][thread_num]], path_head, path_new - path_head);
-                ans_top[depth - 3][thread_num] += path_new - path_head;
-                n_ans[depth - 3][thread_num]++;
-                ans[depth - 3][thread_num][ans_top[depth - 3][thread_num] - 1] = '\n';
-            }
-            if (!vis[thread_num][v] && v > head 
-                && (amount >= 0.2 * preAmount && amount <= 3 * preAmount)
-                ) {
-                //if (depth == 6 && direct_reach[thread_num * nodeCnt + v]) {
-                //    double amount_final = amount_arr[cur * 50 + v];
-                //    if ((amount_final >= 0.2 * amount && amount_final <= 3 * amount) &&
-                //        (startAmount >= 0.2 * amount_final && startAmount <= 3 * amount_final))
-                //    {
-                //        //*path_new++ = ids[v];
-                //        //memcpy(&ans[4][n_ans[4]++ * 7], path_new - 7, 7 * sizeof(int));
-                //        //path_new--;
-                //        int len7 = idsStrIndex[v + 1] - idsStrIndex[v];
-                //        memcpy(path_new, &idsStr[idsStrIndex[v]], len7 * sizeof(char));
-                //        path_new += len7;
-                //        memcpy(&ans[4][thread_num][ans_top[4][thread_num]], path_head, path_new - path_head);
-                //        ans_top[4][thread_num] += path_new - path_head;
-                //        n_ans[4][thread_num]++;
-                //        ans[4][thread_num][ans_top[4][thread_num] - 1] = '\n';
-                //        path_new -= len7;
-                //    }
-                //}
-                if (depth < 4)
-                    dfs(head, v, depth + 1, thread_num, path_new, path_head, startAmount, amount);
-                else if (depth>3 && depth<7)
+                double amount = (double)amount_arr[cur * 50 + i];
+                // int idv = ids[v];
+                if (v == head && depth >= 3
+                    && (amount >= 0.2 * preAmount && amount <= 3 * preAmount)
+                    && (startAmount >= 0.2 * amount && startAmount <= 3 * amount)
+                    )
                 {
-                    if (onestep_reach[thread_num * nodeCnt + v])
+                    //memcpy(&ans[depth - 3][n_ans[depth - 3]++ * depth], path_new - depth, depth * sizeof(int));
+                    memcpy(&ans[depth - 3][thread_num][ans_top[depth - 3][thread_num]], path_head, path_new - path_head);
+                    ans_top[depth - 3][thread_num] += path_new - path_head;
+                    n_ans[depth - 3][thread_num]++;
+                    ans[depth - 3][thread_num][ans_top[depth - 3][thread_num] - 1] = '\n';
+                }
+                if (!vis[thread_num][v] && v > head
+                    && (amount >= 0.2 * preAmount && amount <= 3 * preAmount)
+                    ) {
+                    //if (depth == 6 && direct_reach[thread_num * nodeCnt + v]) {
+                    //    double amount_final = amount_arr[cur * 50 + v];
+                    //    if ((amount_final >= 0.2 * amount && amount_final <= 3 * amount) &&
+                    //        (startAmount >= 0.2 * amount_final && startAmount <= 3 * amount_final))
+                    //    {
+                    //        //*path_new++ = ids[v];
+                    //        //memcpy(&ans[4][n_ans[4]++ * 7], path_new - 7, 7 * sizeof(int));
+                    //        //path_new--;
+                    //        int len7 = idsStrIndex[v + 1] - idsStrIndex[v];
+                    //        memcpy(path_new, &idsStr[idsStrIndex[v]], len7 * sizeof(char));
+                    //        path_new += len7;
+                    //        memcpy(&ans[4][thread_num][ans_top[4][thread_num]], path_head, path_new - path_head);
+                    //        ans_top[4][thread_num] += path_new - path_head;
+                    //        n_ans[4][thread_num]++;
+                    //        ans[4][thread_num][ans_top[4][thread_num] - 1] = '\n';
+                    //        path_new -= len7;
+                    //    }
+                    //}
+                    if (depth < 4)
                         dfs(head, v, depth + 1, thread_num, path_new, path_head, startAmount, amount);
+                    else if (depth > 3 && depth < 7)
+                    {
+                        if (onestep_reach[thread_num * nodeCnt + v])
+                            dfs(head, v, depth + 1, thread_num, path_new, path_head, startAmount, amount);
+                    }
                 }
             }
         }
@@ -418,7 +422,6 @@ public:
                 onestep_reach[v + thread_num * nodeCnt] = false;
                 int* pp = &invG_arr[v * 50];
                 for (int k = 0; k < invG_arr_num[v]; k++)
-
                 {
                     int vv = pp[k];
                     onestep_reach[vv + thread_num * nodeCnt] = false;
