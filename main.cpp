@@ -33,8 +33,53 @@ using namespace std;
 
 // #define MYTIME
 
+//template <typename T, typename Compare>
+//vector<size_t> sort_permutation(
+//    const vector<T>& vec,
+//    Compare& compare)
+//{
+//    vector<std::size_t> p(vec.size());
+//    iota(p.begin(), p.end(), 0);
+//    sort(p.begin(), p.end(),
+//        [&](size_t i, size_t j) { return compare(vec[i], vec[j]); });
+//    return p;
+//}
+
+
+struct connection {
+    uint32_t next;
+    long long amount;
+    bool operator==(const connection b) const
+    {
+        return this->next == b.next;
+    }
+    bool operator<=(const connection b) const
+    {
+        return this->next <= b.next;
+    }
+    bool operator<(const connection b) const
+    {
+        return this->next < b.next;
+    }
+    bool operator!=(const connection b) const
+    {
+        return this->next != b.next;
+    }
+    bool operator>=(const connection b) const
+    {
+        return this->next >= b.next;
+    }
+    bool operator>(const connection b) const
+    {
+        return this->next > b.next;
+    }
+};
+
+
 int sizeTable[10] = { 9, 99, 999, 9999, 99999, 999999, 9999999,
   99999999, 999999999, INT8_MAX };
+
+
 
 inline int intSize(unsigned int x)
 {
@@ -59,12 +104,12 @@ const char digit_pairs[201] = {
 
 inline int append_uint_to_str(char* s, unsigned int i)
 {
-    //    if (i == 0)
-    //    {
-    //        *s = '0';
-    //        *(s + 1) = ',';
-    //        return 2;
-    //    }
+    //if (i == 0)
+    //{
+    //    *s = '0';
+    //    *(s + 1) = ',';
+    //    return 2;
+    //}
     int size = intSize(i);
     s[size] = ',';
     char* c = &s[size - 1];
@@ -133,21 +178,19 @@ public:
     //maxN=560000
     //maxE=280000 ~avgN=26000
     //vector<int> *G;
-    vector<vector<uint32_t>> G;
-    int G_arr_num[280000];
-    int invG_arr_num[280000];
-    int* G_arr;
-    int* invG_arr;
-    int* amount_arr;
+    vector<vector<connection>> G;
+    //int G_arr_num[280000];
+    //int invG_arr_num[280000];
+    //int* G_arr;
+    //int* invG_arr;
+    //int* amount_arr;
     vector<vector<uint32_t>> invG;
     unordered_map<ui, uint32_t> idHash; //sorted id to 0...n
     vector<ui> ids; //0...n to sorted id
     char* idsStr;
     int* idsStrIndex;
-    int* idsStrStep;
     vector<ui> inputs; //u-v pairs
-    vector<int> input_to_node;
-    vector<int> node_to_input;
+    vector<uint32_t> inputs_amount;
     //vector<int> inDegrees;
     vector<vector<bool>> vis;
     //    vector<vector<Path>> ans_arr;
@@ -160,7 +203,7 @@ public:
     bool* onestep_reach;
 
     void parseInput(string& testFile) {
-        ui u, v, c;
+        ui u, v; int c;
         // while(fscanf(file,"%u,%u,%u",&u,&v,&c)!=EOF){
         //     inputs.push_back(u);
         //     inputs.push_back(v);
@@ -172,12 +215,10 @@ public:
         int length = contents.length();
         char* p = new char[length];
         strcpy(p, contents.c_str());
-        input_to_node = vector<int>(280000, 0);
 #else
         int fd = open(testFile.c_str(), O_RDONLY);
         int length = lseek(fd, 0, SEEK_END);
         char* p = (char*)mmap(0, length, PROT_READ, MAP_SHARED, fd, 0);
-        input_to_node = vector<int>(280000, 0);
 #endif
         char* pp = p;
         nodeCnt = 0;
@@ -201,9 +242,7 @@ public:
             pp++;
             inputs.push_back(u);
             inputs.push_back(v);
-            inputs.push_back(c);
-            input_to_node[u]++;
-            input_to_node[v]++;
+            inputs_amount.push_back(c);
             // if (idHash.find(u) == idHash.end())
             // {
             //     idHash[u] = nodeCnt++;
@@ -219,118 +258,87 @@ public:
     }
 
     void constructGraph() {
-        // auto tmp = inputs;
-        // sort(tmp.begin(), tmp.end());
-        // tmp.erase(unique(tmp.begin(), tmp.end()), tmp.end());
-        // //ids = tmp;
-        // nodeCnt = 0;
-            // idHash[1] = nodeCnt++;
-        // for (ui& x : tmp) {
+        auto tmp = inputs;
+        sort(tmp.begin(), tmp.end());
+        tmp.erase(unique(tmp.begin(), tmp.end()), tmp.end());
 
-            // idHash[x] = nodeCnt++;
-        // }
         nodeCnt = 0;
-        node_to_input = vector<int>(280000, 0);
-        for (int i = 0; i < 280000; ++i)
-        {
-            if (input_to_node[i] > 0)
-            {
-                node_to_input[nodeCnt] = i;
-                input_to_node[i] = nodeCnt++;
-            }
+        for (ui& x : tmp) {
+
+            idHash[x] = nodeCnt++;
         }
-        // assert(newNodeCnt==nodeCnt);
-        //printNode();
         idsStr = new char[nodeCnt * 10];
-        idsStrIndex = new int[nodeCnt + 1];
-        idsStrStep = new int[nodeCnt];
+        idsStrIndex = new int[nodeCnt+1];
+        idsStrIndex[0] = 0;
         char* p = &idsStr[0];
         int index = 0; int step = 0;
-        idsStrIndex[0] = 0;
         for (int i = 0; i < nodeCnt; i++)
         {
-            p += append_uint_to_str(p, node_to_input[i]);
-            //            p += step;
-            idsStrIndex[i + 1] = p - idsStr;
-            //            idsStrStep[i] = step;
-            //            index += step;
+            step = append_uint_to_str(p, tmp[i]);
+            p += step;
+            index += step;
+            idsStrIndex[i+1] = index;
         }
 #ifdef TEST
         printf("%d Nodes in Total\n", nodeCnt);
 #endif
         int sz = inputs.size();
         //G=new vector<int>[nodeCnt];
-//        G = vector<vector<uint32_t>>(nodeCnt);
-//        invG = vector<vector<uint32_t>>(nodeCnt);
-        //for (int i = 0; i < nodeCnt; i ++) {
-        //    G[i].reserve(10);
-        //    invG[i].reserve(10);
-        //}
+        G = vector<vector<connection>>(nodeCnt);
+        invG = vector<vector<uint32_t>>(nodeCnt);
+
         //inDegrees = vector<int>(nodeCnt, 0);
         int u, v;
-        //        for (int i = 0; i < sz; i += 2) {
-        //            u = idHash[inputs[i]]; v = idHash[inputs[i + 1]];
-        //            G[u].push_back(v);
-        //            invG[v].push_back(u);
-        //            //++inDegrees[v];
-        //        }
-        //        for (int i = 0; i < nodeCnt; i++)
-        //        {
-        //            sort(G[i].begin(), G[i].end());
-        ////	    insertSort((int*)&G[i][0],G[i].size());
-        ////	    shellSort((int*)&G[i][0],G[i].size());
-        //        }
-        G_arr = new int[280000 * 50];
-        invG_arr = new int[280000 * 50];
-        amount_arr = new int[280000 * 50];
-        //        memset(G_arr,-1,280000*50*sizeof(int));
-        //        memset(G_arr_num,0,280000*sizeof(int));
-        for (int i = 0; i < sz; i += 3) {
-            int u = input_to_node[inputs[i]], v = input_to_node[inputs[i + 1]];
-            amount_arr[u * 50 + G_arr_num[u]] = inputs[i + 2];
-            G_arr[u * 50 + G_arr_num[u]++] = v;
-            invG_arr[v * 50 + invG_arr_num[v]++] = u;
+        for (int i = 0; i < sz; i += 2) {
+            u = idHash[inputs[i]]; v = idHash[inputs[i + 1]];
+            struct connection conn = { v, inputs_amount[i / 2] };
+            G[u].push_back(conn);
+            invG[v].push_back(u);
+            //++inDegrees[v];
         }
         for (int i = 0; i < nodeCnt; i++)
         {
-            shellSort((int*)&G_arr[i * 50], (int*)&amount_arr[i*50], G_arr_num[i]);
+            sort(G[i].begin(), G[i].end());
         }
 
     }
 
-    void printNode()
-    {
-        string s("nodes.txt");
-        ofstream f(s.c_str());
-        for (int i = 0; i < nodeCnt; i++)
-            f << i << "," << node_to_input[i] << endl;
-        f.close();
+    //void printNode()
+    //{
+    //    string s("nodes.txt");
+    //    ofstream f(s.c_str());
+    //    for (int i = 0; i < nodeCnt; i++)
+    //        f << i << "," << node_to_input[i] << endl;
+    //    f.close();
 
-    }
+    //}
 
-    void dfs(int head, int cur, int depth, int thread_num, char* path_new, char* path_head, double startAmount, double preAmount) {
+    void dfs(int head, int cur, int depth, int thread_num, char* path_new, char* path_head, long long startAmount, long long preAmount) {
         vis[thread_num][cur] = true;
         //        int len = idsStrStep[cur];
         int len = idsStrIndex[cur + 1] - idsStrIndex[cur];
         memcpy(path_new, &idsStr[idsStrIndex[cur]], len * sizeof(char));
         path_new += len;
 
-        //        for (uint32_t& v : G[cur]) {
-        for (int i = 0; i < G_arr_num[cur]; i++) {
-            ui v = G_arr[cur * 50 + i];
+        for (connection& conn : G[cur]) {
+            ui v = conn.next;
+        //for (int i = 0; i < G_arr_num[cur]; i++) {
+        //    ui v = G_arr[cur * 50 + i];
             if (depth == 1)
             {
-                preAmount = amount_arr[cur * 50 + i];
+                //preAmount = amount_arr[cur * 50 + i];
+                preAmount = conn.amount;
                 if (v>head)
                     dfs(head, v, depth + 1, thread_num, path_new, path_head, preAmount, preAmount);
             }
             else
             {
-                double amount = (double)amount_arr[cur * 50 + i];
+                //double amount = (double)amount_arr[cur * 50 + i];
+                long long amount = conn.amount;
                 // int idv = ids[v];
                 if (v == head && depth >= 3
-                    && (amount >= 0.2 * preAmount && amount <= 3 * preAmount)
-                    && (startAmount >= 0.2 * amount && startAmount <= 3 * amount)
+                    && (preAmount <= 5 * amount && amount <= 3 * preAmount)
+                    && (amount <= 5 * startAmount && startAmount <= 3 * amount)
                     )
                 {
                     //memcpy(&ans[depth - 3][n_ans[depth - 3]++ * depth], path_new - depth, depth * sizeof(int));
@@ -340,7 +348,7 @@ public:
                     ans[depth - 3][thread_num][ans_top[depth - 3][thread_num] - 1] = '\n';
                 }
                 if (!vis[thread_num][v] && v > head
-                    && (amount >= 0.2 * preAmount && amount <= 3 * preAmount)
+                    && (5 * amount >= preAmount && amount <= 3 * preAmount)
                     ) {
                     //if (depth == 6 && direct_reach[thread_num * nodeCnt + v]) {
                     //    double amount_final = amount_arr[cur * 50 + v];
@@ -386,50 +394,39 @@ public:
 
         for (int i = nodeMin; i < nodeMax; i++)
         {
-            int* p = &invG_arr[i * 50];
-            for (int j = 0; j < invG_arr_num[i]; j++)
+            for (uint32_t& v : invG[i])
             {
-                int v = p[j];
-                if (v < i) continue;
-                direct_reach[v + thread_num * nodeCnt] = true;
-                //direct_reach_amount[v + thread_num*nodeCnt] = amount_arr[]
-                onestep_reach[v + thread_num * nodeCnt] = true;
-                int* pp = &invG_arr[v * 50];
-                for (int k = 0; k < invG_arr_num[v]; k++)
+                //		if(v<i) continue;
+                direct_reach[v + thread_num * nodeCnt] = 1;
+                onestep_reach[v + thread_num * nodeCnt] = 1;
+                // invvis[v] = true;
+                for (uint32_t& vv : invG[v])
                 {
-                    int vv = pp[k];
-                    if (vv < i) continue;
-                    onestep_reach[vv + thread_num * nodeCnt] = true;
-                    int* ppp = &invG_arr[vv * 50];
-                    for (int l = 0; l < invG_arr_num[vv]; l++)
+                    //		    if(vv<i) continue;
+                    onestep_reach[vv + thread_num * nodeCnt] = 1;
+                    for (uint32_t& vvv : invG[vv])
                     {
-                        int vvv = ppp[l];
-                        if (vvv < i) continue;
-                        onestep_reach[vvv + thread_num * nodeCnt] = true;
+                        //			if(vvv<i) continue;
+                        onestep_reach[vvv + thread_num * nodeCnt] = 1;
                     }
                 }
             }
-
-            if (G_arr_num[i] > 0) {
-                dfs(i, i, 1, thread_num, path_new, path_head, 0.0, 0.0);
+            if (!G[i].empty()) {
+                dfs(i, i, 1, thread_num, path_new, path_head, 0, 0);
             }
-
-            for (int j = 0; j < invG_arr_num[i]; j++)
-
+            for (uint32_t& v : invG[i])
             {
-                int v = p[j];
-                direct_reach[v + thread_num * nodeCnt] = false;
-                onestep_reach[v + thread_num * nodeCnt] = false;
-                int* pp = &invG_arr[v * 50];
-                for (int k = 0; k < invG_arr_num[v]; k++)
+                //		if(v<i) continue;
+                direct_reach[v + thread_num * nodeCnt] = 0;
+                onestep_reach[v + thread_num * nodeCnt] = 0;
+                for (uint32_t& vv : invG[v])
                 {
-                    int vv = pp[k];
-                    onestep_reach[vv + thread_num * nodeCnt] = false;
-                    int* ppp = &invG_arr[vv * 50];
-                    for (int l = 0; l < invG_arr_num[vv]; l++)
+                    //		    if(vv<i) continue;
+                    onestep_reach[vv + thread_num * nodeCnt] = 0;
+                    for (uint32_t& vvv : invG[vv])
                     {
-                        int vvv = ppp[l];
-                        onestep_reach[vvv + thread_num * nodeCnt] = false;
+                        //			if(vvv<i) continue;
+                        onestep_reach[vvv + thread_num * nodeCnt] = 0;
                     }
                 }
             }
@@ -543,8 +540,8 @@ public:
 int main()
 {
 #ifdef _WIN64
+    //string testFile = "./temp_data/58284/test_data.txt";
     string testFile = "./data/official/test_data.txt";
-    //string testFile = "../test_data.txt";
     clock_t start, finish;
     double totaltime;
     start = clock();
