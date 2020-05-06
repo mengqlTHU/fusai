@@ -27,7 +27,7 @@
 
 using namespace std;
 
-#define thread_cnt 1
+#define thread_cnt 4
 
 // #define TEST
 
