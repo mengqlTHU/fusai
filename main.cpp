@@ -28,6 +28,8 @@
 using namespace std;
 
 #define thread_cnt 4
+#define five (long long)5
+#define three (long long)3
 
 // #define TEST
 
@@ -196,10 +198,9 @@ public:
     //    vector<vector<Path>> ans_arr;
     char* ans[5][thread_cnt];
     int n_ans[5][thread_cnt];
-    int ans_top[5][thread_cnt];
+    ui ans_top[5][thread_cnt];
     int nodeCnt;
     bool* direct_reach;
-    double* direct_reach_amount;
     bool* onestep_reach;
 
     void parseInput(string& testFile) {
@@ -267,7 +268,7 @@ public:
 
             idHash[x] = nodeCnt++;
         }
-        idsStr = new char[nodeCnt * 10];
+        idsStr = new char[nodeCnt * 11];
         idsStrIndex = new int[nodeCnt+1];
         idsStrIndex[0] = 0;
         char* p = &idsStr[0];
@@ -337,8 +338,8 @@ public:
                 long long amount = conn.amount;
                 // int idv = ids[v];
                 if (v == head && depth >= 3
-                    && (preAmount <= 5 * amount && amount <= 3 * preAmount)
-                    && (amount <= 5 * startAmount && startAmount <= 3 * amount)
+                    && (preAmount <= five * amount && amount <= three * preAmount)
+                    && (amount <= five * startAmount && startAmount <= three * amount)
                     )
                 {
                     //memcpy(&ans[depth - 3][n_ans[depth - 3]++ * depth], path_new - depth, depth * sizeof(int));
@@ -348,7 +349,7 @@ public:
                     ans[depth - 3][thread_num][ans_top[depth - 3][thread_num] - 1] = '\n';
                 }
                 if (!vis[thread_num][v] && v > head
-                    && (5 * amount >= preAmount && amount <= 3 * preAmount)
+                    && (five * amount >= preAmount && amount <= three * preAmount)
                     ) {
                     //if (depth == 6 && direct_reach[thread_num * nodeCnt + v]) {
                     //    double amount_final = amount_arr[cur * 50 + v];
@@ -397,17 +398,17 @@ public:
             for (uint32_t& v : invG[i])
             {
                 //		if(v<i) continue;
-                direct_reach[v + thread_num * nodeCnt] = 1;
-                onestep_reach[v + thread_num * nodeCnt] = 1;
+                direct_reach[v + thread_num * nodeCnt] = true;
+                onestep_reach[v + thread_num * nodeCnt] = true;
                 // invvis[v] = true;
                 for (uint32_t& vv : invG[v])
                 {
                     //		    if(vv<i) continue;
-                    onestep_reach[vv + thread_num * nodeCnt] = 1;
+                    onestep_reach[vv + thread_num * nodeCnt] = true;
                     for (uint32_t& vvv : invG[vv])
                     {
                         //			if(vvv<i) continue;
-                        onestep_reach[vvv + thread_num * nodeCnt] = 1;
+                        onestep_reach[vvv + thread_num * nodeCnt] = true;
                     }
                 }
             }
@@ -417,16 +418,16 @@ public:
             for (uint32_t& v : invG[i])
             {
                 //		if(v<i) continue;
-                direct_reach[v + thread_num * nodeCnt] = 0;
-                onestep_reach[v + thread_num * nodeCnt] = 0;
+                direct_reach[v + thread_num * nodeCnt] = false;
+                onestep_reach[v + thread_num * nodeCnt] = false;
                 for (uint32_t& vv : invG[v])
                 {
                     //		    if(vv<i) continue;
-                    onestep_reach[vv + thread_num * nodeCnt] = 0;
+                    onestep_reach[vv + thread_num * nodeCnt] = false;
                     for (uint32_t& vvv : invG[vv])
                     {
                         //			if(vvv<i) continue;
-                        onestep_reach[vvv + thread_num * nodeCnt] = 0;
+                        onestep_reach[vvv + thread_num * nodeCnt] = false;
                     }
                 }
             }
@@ -540,7 +541,7 @@ public:
 int main()
 {
 #ifdef _WIN64
-    //string testFile = "./temp_data/58284/test_data.txt";
+    //string testFile = "./temp_data/2755223/test_data.txt";
     string testFile = "./data/official/test_data.txt";
     clock_t start, finish;
     double totaltime;

@@ -88,4 +88,5 @@ x64
 production.cpp
 *.docx
 myresults.txt
+myresult.txt
 temp_data
