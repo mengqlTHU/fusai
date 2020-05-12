@@ -89,4 +89,5 @@ production.cpp
 *.docx
 myresults.txt
 myresult.txt
+debug.txt
 temp_data
