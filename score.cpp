@@ -42,7 +42,7 @@ public:
     vector<int> inDegrees;
     vector<bool> vis;
     vector<bool> onestep_reach;
-    vector<Path> ans;
+    vector<vector<Path>> ans;
     int nodeCnt;
 
     inline bool check(int x, int y) {
@@ -69,7 +69,6 @@ public:
         auto tmp = inputs;
         sort(tmp.begin(), tmp.end());
         tmp.erase(unique(tmp.begin(), tmp.end()), tmp.end());
-        nodeCnt = tmp.size();
         ids = tmp;
         nodeCnt = 0;
         for (ui &x:tmp) {
@@ -87,6 +86,11 @@ public:
             G[u].push_back(v);
             invG[v].push_back(u);
             ++inDegrees[v];
+        }
+
+        for (int i = 0; i < nodeCnt; i++)
+        {
+            sort(G[i].begin(), G[i].end());
         }
     }
 
@@ -115,12 +119,12 @@ public:
         for (int &v:G[cur]) {
             if (depth == 1 && v > head)
                 dfs(head, cur, v, depth + 1, path);
-            else if (v == head && depth >= 3 && depth <= 7) {
+            else if (v == head && depth >= 3) {
                 vector<ui> tmp;
                 for (int &x:path)
                     tmp.push_back(ids[x]);
                 if (checkAns(tmp, depth))
-                    ans.emplace_back(Path(depth, tmp));
+                    ans[depth - 3].emplace_back(Path(depth, tmp));
             }
             else if (depth < 7 && !vis[v] && v > head ) {
                 {
@@ -146,6 +150,7 @@ public:
     void solve() {
         vis = vector<bool>(nodeCnt, false);
         onestep_reach = vector<bool>(nodeCnt, false);
+        ans = vector<vector<Path>>(5);
 
         vector<int> path;
         for (int i = 0; i < nodeCnt; i++) {
@@ -187,20 +192,27 @@ public:
                 }
             }
         }
-        sort(ans.begin(), ans.end());
+        //sort(ans.begin(), ans.end());
     }
 
     void save(string &outputFile) {
-        printf("Total Loops %d\n", (int) ans.size());
+        int ansSize = 0;
+        for (int i = 0; i < 5; i++)
+        {
+            ansSize += ans[i].size();
+        }
         ofstream out(outputFile);
-        out << ans.size() << endl;
-        for (auto &x:ans) {
-            auto path = x.path;
-            int sz = path.size();
-            out << path[0];
-            for (int i = 1; i < sz; i++)
-                out << "," << path[i];
-            out << endl;
+        out << ansSize << endl;
+        for (int i = 0; i < 5; i++)
+        {
+            for (auto& x : ans[i]) {
+                auto path = x.path;
+                int sz = path.size();
+                out << path[0];
+                for (int i = 1; i < sz; i++)
+                    out << "," << path[i];
+                out << endl;
+            }
         }
     }
 };
