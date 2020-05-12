@@ -33,6 +33,7 @@ struct Path {
 class Solution {
 public:
     vector<vector<int>> G;
+    vector<vector<ui>> invG;
     unordered_map<ui, int> idHash; //sorted id to 0...n
     //bad case, don't follow
     unordered_map<ull, int> migic;
@@ -40,6 +41,7 @@ public:
     vector<ui> inputs; //u-v pairs
     vector<int> inDegrees;
     vector<bool> vis;
+    vector<bool> onestep_reach;
     vector<Path> ans;
     int nodeCnt;
 
@@ -78,10 +80,12 @@ public:
 #endif
         int sz = inputs.size();
         G = vector<vector<int>>(nodeCnt);
+        invG = vector<vector<ui>>(nodeCnt);
         inDegrees = vector<int>(nodeCnt, 0);
         for (int i = 0; i < sz; i += 2) {
             int u = idHash[inputs[i]], v = idHash[inputs[i + 1]];
             G[u].push_back(v);
+            invG[v].push_back(u);
             ++inDegrees[v];
         }
     }
@@ -109,7 +113,9 @@ public:
         vis[cur] = true;
         path.push_back(cur);
         for (int &v:G[cur]) {
-            if (v == head && depth >= 3 && depth <= 7) {
+            if (depth == 1 && v > head)
+                dfs(head, cur, v, depth + 1, path);
+            else if (v == head && depth >= 3 && depth <= 7) {
                 vector<ui> tmp;
                 for (int &x:path)
                     tmp.push_back(ids[x]);
@@ -117,12 +123,17 @@ public:
                     ans.emplace_back(Path(depth, tmp));
             }
             else if (depth < 7 && !vis[v] && v > head ) {
-                if (depth==1)
-                    dfs(head, cur, v, depth + 1, path);
-                else
                 {
                     if (check(migic[(ull)ids[pre] << 32 | ids[cur]], migic[(ull)ids[cur] << 32 | ids[v]]))
-                        dfs(head, cur, v, depth + 1, path);
+                    {
+                        if (depth < 4)
+                            dfs(head, cur, v, depth + 1, path);
+                        else
+                        {
+                            if (onestep_reach[v])
+                                dfs(head, cur, v, depth + 1, path);
+                        }
+                    }
                 }
             }
         }
@@ -134,12 +145,46 @@ public:
     //????id?????????????????????id?????
     void solve() {
         vis = vector<bool>(nodeCnt, false);
+        onestep_reach = vector<bool>(nodeCnt, false);
+
         vector<int> path;
         for (int i = 0; i < nodeCnt; i++) {
-            if (i % 100 == 0)
-                cout << i << "/" << nodeCnt << endl;
+            //if (i % 100 == 0)
+            //    cout << i << "/" << nodeCnt << endl;
+            for (ui& v : invG[i])
+            {
+                if(v<i) continue;
+                onestep_reach[v] = true;
+                for (ui& vv : invG[v])
+                {
+                    if(vv<i) continue;
+                    onestep_reach[vv] = true;
+                    for (ui& vvv : invG[vv])
+                    {
+                        if(vvv<i) continue;
+                        onestep_reach[vvv] = true;
+                    }
+                }
+            }
+
             if (!G[i].empty()) {
                 dfs(i, i, i, 1, path);
+            }
+
+            for (ui& v : invG[i])
+            {
+                if (v < i) continue;
+                onestep_reach[v] = false;
+                for (ui& vv : invG[v])
+                {
+                    if (vv < i) continue;
+                    onestep_reach[vv] = false;
+                    for (ui& vvv : invG[vv])
+                    {
+                        if (vvv < i) continue;
+                        onestep_reach[vvv] = false;
+                    }
+                }
             }
         }
         sort(ans.begin(), ans.end());
