@@ -33,6 +33,52 @@ struct Path {
     }
 };
 
+int sizeTable[10] = { 9, 99, 999, 9999, 99999, 999999, 9999999,
+  99999999, 999999999, INT32_MAX };
+
+
+
+inline int intSize(unsigned int x)
+{
+    for (int i = 0; i < 10; ++i)
+    {
+        if (x <= sizeTable[i]) return i + 1;
+    }
+};
+
+const char digit_pairs[201] = {
+  "00010203040506070809"
+  "10111213141516171819"
+  "20212223242526272829"
+  "30313233343536373839"
+  "40414243444546474849"
+  "50515253545556575859"
+  "60616263646566676869"
+  "70717273747576777879"
+  "80818283848586878889"
+  "90919293949596979899"
+};
+
+inline int append_uint_to_str(char* s, unsigned int i)
+{
+    int size = intSize(i);
+    s[size] = ',';
+    char* c = &s[size - 1];
+    while (i >= 100)
+    {
+        int pos = i % 100;
+        i /= 100;
+        *(short*)(c - 1) = *(short*)(digit_pairs + 2 * pos);
+        c -= 2;
+    }
+    while (i > 0)
+    {
+        *c-- = '0' + (i % 10);
+        i /= 10;
+    }
+    return size + 1;
+};
+
 class Solution {
 public:
     vector<vector<ui>> G;
@@ -45,6 +91,7 @@ public:
     vector<int> inDegrees;
     vector<bool> vis;
     vector<bool> onestep_reach;
+    vector<bool> direct_reach;
     vector<vector<Path>> ans;
     int nodeCnt;
     int sccTime;
@@ -226,10 +273,23 @@ public:
                 {
                     if (depth < 4)
                         dfs(head, cur, v, depth + 1, path);
-                    else
+                    else if (depth < 6)
                     {
                         if (onestep_reach[v])
                             dfs(head, cur, v, depth + 1, path);
+                    }
+                    else
+                    {
+                        if (direct_reach[v])
+                        {
+                            vector<ui> tmp;
+                            path.push_back(v);
+                            for (int& x : path)
+                                tmp.push_back(ids[x]);
+                            if (checkAns(tmp, 7))
+                                ans[4].emplace_back(Path(7, tmp));
+                            path.pop_back();
+                        }
                     }
                 }
             }
@@ -243,6 +303,7 @@ public:
     void solve() {
         vis = vector<bool>(nodeCnt, false);
         onestep_reach = vector<bool>(nodeCnt, false);
+        direct_reach = vector<bool>(nodeCnt, false);
         ans = vector<vector<Path>>(5);
 
         vector<int> path;
@@ -253,6 +314,7 @@ public:
             {
                 if(v<i) continue;
                 onestep_reach[v] = true;
+                direct_reach[v] = true;
                 for (ui& vv : invG[v])
                 {
                     if(vv<i) continue;
@@ -273,10 +335,10 @@ public:
             {
                 if (v < i) continue;
                 onestep_reach[v] = false;
+                direct_reach[v] = false;
                 for (ui& vv : invG[v])
                 {
                     if (vv < i) continue;
-                    onestep_reach[vv] = false;
                     onestep_reach[vv] = false;
                     for (ui& vvv : invG[vv])
                     {
@@ -362,25 +424,49 @@ public:
         }
     }
 
-    void save(string &outputFile) {
-        int ansSize = 0;
-        for (int i = 0; i < 5; i++)
-        {
-            ansSize += ans[i].size();
+    //void save(string &outputFile) {
+    //    int ansSize = 0;
+    //    for (int i = 0; i < 5; i++)
+    //    {
+    //        ansSize += ans[i].size();
+    //    }
+    //    ofstream out(outputFile);
+    //    out << ansSize << endl;
+    //    for (int i = 0; i < 5; i++)
+    //    {
+    //        for (auto& x : ans[i]) {
+    //            auto path = x.path;
+    //            int sz = path.size();
+    //            out << path[0];
+    //            for (int i = 1; i < sz; i++)
+    //                out << "," << path[i];
+    //            out << endl;
+    //        }
+    //    }
+    //}
+    void save(string& outputFile) {
+        int count = 0;
+        for (int i = 0; i < 5; i++) {
+                count += ans[i].size();
         }
-        ofstream out(outputFile);
-        out << ansSize << endl;
-        for (int i = 0; i < 5; i++)
-        {
-            for (auto& x : ans[i]) {
-                auto path = x.path;
-                int sz = path.size();
-                out << path[0];
-                for (int i = 1; i < sz; i++)
-                    out << "," << path[i];
-                out << endl;
+        FILE* fp = fopen(outputFile.c_str(), "w");
+
+        char* p = new char[count*80];
+        char* pp = (char*)p;
+        pp += append_uint_to_str(pp, count);
+        pp[-1] = '\n';
+
+        for (int i = 0; i < 5; i++) {
+            for (int j = 0; j < ans[i].size(); j++) {
+                for (ui &k:ans[i][j].path)
+                {
+                    pp += append_uint_to_str(pp, k);
+                }
+                pp[-1] = '\n';
             }
         }
+
+        fwrite(p, 1, pp - p, fp);
     }
 };
 
@@ -389,10 +475,11 @@ void solve(string testFile,string outputFile){
     Solution solution;
     solution.parseInput(testFile);
     solution.constructGraph();
-    if (solution.isDenseGraph)
-        solution.solve();
-    else
-        solution.solveSCC();
+    //if (solution.isDenseGraph)
+    //    solution.solve();
+    //else
+    //    solution.solveSCC();
+    solution.solve();
     solution.save(outputFile);
 }
 
@@ -407,7 +494,7 @@ int main() {
 
 #ifdef _WIN64
     string testFile = "../data/official/test_data.txt";
-    //string testFile = "../temp_data/2755223/test_data.txt";
+    //string testFile = "../temp_data/1004812/test_data.txt";
     string outputFile = "../data/official/myresult.txt";
 #else
     string testFile = "/data/test_data.txt";
