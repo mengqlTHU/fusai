@@ -245,8 +245,6 @@ public:
     void solve() {
         vis = vector<bool>(nodeCnt, false);
         onestep_reach = vector<bool>(nodeCnt, false);
-        twostep_reach = vector<bool>(nodeCnt, false);
-        threestep_reach = vector<bool>(nodeCnt, false);
         ans = vector<vector<Path>>(5);
 
         vector<int> path;
@@ -257,17 +255,14 @@ public:
             {
                 if(v<i) continue;
                 onestep_reach[v] = true;
-                twostep_reach[v] = true;
-                threestep_reach[v] = true;
                 for (ui& vv : invG[v])
                 {
                     if(vv<i) continue;
-                    twostep_reach[vv] = true;
-                    threestep_reach[vv] = true;
+                    onestep_reach[vv] = true;
                     for (ui& vvv : invG[vv])
                     {
                         if(vvv<i) continue;
-                        threestep_reach[vvv] = true;
+                        onestep_reach[vvv] = true;
                     }
                 }
             }
@@ -280,17 +275,15 @@ public:
             {
                 if (v < i) continue;
                 onestep_reach[v] = false;
-                twostep_reach[v] = false;
-                threestep_reach[v] = false;
                 for (ui& vv : invG[v])
                 {
                     if (vv < i) continue;
-                    twostep_reach[vv] = false;
-                    threestep_reach[vv] = false;
+                    onestep_reach[vv] = false;
+                    onestep_reach[vv] = false;
                     for (ui& vvv : invG[vv])
                     {
                         if (vvv < i) continue;
-                        threestep_reach[vvv] = false;
+                        onestep_reach[vvv] = false;
                     }
                 }
             }
@@ -415,8 +408,8 @@ int main() {
     // }
 
 #ifdef _WIN64
-    //string testFile = "../data/official/test_data.txt";
-    string testFile = "../temp_data/2755223/test_data.txt";
+    string testFile = "../data/official/test_data.txt";
+    //string testFile = "../temp_data/2755223/test_data.txt";
     string outputFile = "../data/official/myresult.txt";
 #else
     string testFile = "/data/test_data.txt";
