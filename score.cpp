@@ -45,8 +45,6 @@ public:
     vector<int> inDegrees;
     vector<bool> vis;
     vector<bool> onestep_reach;
-    vector<bool> twostep_reach;
-    vector<bool> threestep_reach;
     vector<vector<Path>> ans;
     int nodeCnt;
     int sccTime;
