@@ -33,6 +33,35 @@ struct Path {
     }
 };
 
+struct connection {
+    ui next;
+    ull amount;
+    bool operator==(const connection b) const
+    {
+        return this->next == b.next;
+    }
+    bool operator<=(const connection b) const
+    {
+        return this->next <= b.next;
+    }
+    bool operator<(const connection b) const
+    {
+        return this->next < b.next;
+    }
+    bool operator!=(const connection b) const
+    {
+        return this->next != b.next;
+    }
+    bool operator>=(const connection b) const
+    {
+        return this->next >= b.next;
+    }
+    bool operator>(const connection b) const
+    {
+        return this->next > b.next;
+    }
+};
+
 int sizeTable[10] = { 9, 99, 999, 9999, 99999, 999999, 9999999,
   99999999, 999999999, INT32_MAX };
 
@@ -81,17 +110,18 @@ inline int append_uint_to_str(char* s, unsigned int i)
 
 class Solution {
 public:
-    vector<vector<ui>> G;
-    vector<vector<ui>> invG;
+    vector<vector<connection>> G;
+    vector<vector<connection>> invG;
     unordered_map<ui, int> idHash; //sorted id to 0...n
     //bad case, don't follow
     unordered_map<ull, int> migic;
+    vector<ull> inputs_amount;
     vector<ui> ids; //0...n to sorted id
     vector<ui> inputs; //u-v pairs
-    vector<int> inDegrees;
+    //vector<int> inDegrees;
     vector<bool> vis;
     vector<bool> onestep_reach;
-    vector<bool> direct_reach;
+    vector<ull> direct_reach;
     vector<vector<Path>> ans;
     int nodeCnt;
     int sccTime;
@@ -112,7 +142,8 @@ public:
         while (fscanf(file, "%u,%u,%u", &u, &v, &c) != EOF) {
             inputs.push_back(u);
             inputs.push_back(v);
-            migic[(ull) u << 32 | v] = c;
+            //migic[(ull) u << 32 | v] = c;
+            inputs_amount.push_back(c);
             ++cnt;
         }
 #ifdef TEST
@@ -133,14 +164,14 @@ public:
         printf("%d Nodes in Total\n", nodeCnt);
 #endif
         int sz = inputs.size();
-        G = vector<vector<ui>>(nodeCnt);
-        invG = vector<vector<ui>>(nodeCnt);
-        inDegrees = vector<int>(nodeCnt, 0);
+        G = vector<vector<connection>>(nodeCnt);
+        invG = vector<vector<connection>>(nodeCnt);
         for (int i = 0; i < sz; i += 2) {
             int u = idHash[inputs[i]], v = idHash[inputs[i + 1]];
-            G[u].push_back(v);
-            invG[v].push_back(u);
-            ++inDegrees[v];
+            struct connection conn = { v, inputs_amount[i / 2] };
+            G[u].push_back(conn);
+            struct connection invConn = { u, inputs_amount[i / 2] };
+            invG[v].push_back(invConn);
         }
 
         for (int i = 0; i < nodeCnt; i++)
@@ -183,8 +214,9 @@ public:
         stackMember[u] = true;
 
         // Go through all vertices adjacent to this 
-        for (ui &v: G[u])
+        for (connection &conn: G[u])
         {
+            ui v = conn.next;
             // If v is not visited yet, then recur for it 
             if (disc[v] == -1)
             {
@@ -255,40 +287,50 @@ public:
 
     }
 
-    void dfs(int head, int pre, int cur, int depth, vector<int> &path) {
+    void dfs(int head, int pre, int cur, int depth, vector<int> &path, ull startAmount, ull preAmount) {
         vis[cur] = true;
         path.push_back(cur);
-        for (ui &v:G[cur]) {
+        for (connection &conn:G[cur]) {
+            ui v = conn.next;
+            ull amount = conn.amount;
             if (depth == 1 && v > head)
-                dfs(head, cur, v, depth + 1, path);
+            {
+                startAmount = amount;
+                dfs(head, cur, v, depth + 1, path, startAmount, startAmount);
+            }
             else if (v == head && depth >= 3) {
                 vector<ui> tmp;
                 for (int &x:path)
                     tmp.push_back(ids[x]);
-                if (checkAns(tmp, depth))
+                //if (checkAns(tmp, depth))
+                if (check(preAmount, amount) && check(amount, startAmount))
                     ans[depth - 3].emplace_back(Path(depth, tmp));
             }
             else if (depth < 7 && !vis[v] && v > head ) {
-                if (check(migic[(ull)ids[pre] << 32 | ids[cur]], migic[(ull)ids[cur] << 32 | ids[v]]))
+                //if (check(migic[(ull)ids[pre] << 32 | ids[cur]], migic[(ull)ids[cur] << 32 | ids[v]]))
+                if (check(preAmount, amount))
                 {
                     if (depth < 4)
-                        dfs(head, cur, v, depth + 1, path);
+                        dfs(head, cur, v, depth + 1, path, startAmount, amount);
                     else if (depth < 6)
                     {
                         if (onestep_reach[v])
-                            dfs(head, cur, v, depth + 1, path);
+                            dfs(head, cur, v, depth + 1, path, startAmount, amount);
                     }
                     else
                     {
                         if (direct_reach[v])
                         {
-                            vector<ui> tmp;
-                            path.push_back(v);
-                            for (int& x : path)
-                                tmp.push_back(ids[x]);
-                            if (checkAns(tmp, 7))
+                            if (check(amount, direct_reach[v]) && check(direct_reach[v], startAmount))
+                            {
+                                vector<ui> tmp;
+                                path.push_back(v);
+                                for (int& x : path)
+                                    tmp.push_back(ids[x]);
+                                //if (checkAns(tmp, 7))
                                 ans[4].emplace_back(Path(7, tmp));
-                            path.pop_back();
+                                path.pop_back();
+                            }
                         }
                     }
                 }
@@ -303,24 +345,28 @@ public:
     void solve() {
         vis = vector<bool>(nodeCnt, false);
         onestep_reach = vector<bool>(nodeCnt, false);
-        direct_reach = vector<bool>(nodeCnt, false);
+        direct_reach = vector<ull>(nodeCnt, 0);
         ans = vector<vector<Path>>(5);
 
         vector<int> path;
         for (int i = 0; i < nodeCnt; i++) {
             //if (i % 100 == 0)
             //    cout << i << "/" << nodeCnt << endl;
-            for (ui& v : invG[i])
+            for (connection& c : invG[i])
             {
+                ui v = c.next;
+                ull amount = c.amount;
                 if(v<i) continue;
                 onestep_reach[v] = true;
-                direct_reach[v] = true;
-                for (ui& vv : invG[v])
+                direct_reach[v] = amount;
+                for (connection& cc : invG[v])
                 {
+                    ui vv = cc.next;
                     if(vv<i) continue;
                     onestep_reach[vv] = true;
-                    for (ui& vvv : invG[vv])
+                    for (connection& ccc : invG[vv])
                     {
+                        ui vvv = ccc.next;
                         if(vvv<i) continue;
                         onestep_reach[vvv] = true;
                     }
@@ -328,20 +374,24 @@ public:
             }
 
             if (!G[i].empty()) {
-                dfs(i, i, i, 1, path);
+                dfs(i, i, i, 1, path, 0, 0);
             }
 
-            for (ui& v : invG[i])
+            for (connection& c : invG[i])
             {
+                ui v = c.next;
+                ull amount = c.amount;
                 if (v < i) continue;
                 onestep_reach[v] = false;
-                direct_reach[v] = false;
-                for (ui& vv : invG[v])
+                direct_reach[v] = 0;
+                for (connection& cc : invG[v])
                 {
+                    ui vv = cc.next;
                     if (vv < i) continue;
                     onestep_reach[vv] = false;
-                    for (ui& vvv : invG[vv])
+                    for (connection& ccc : invG[vv])
                     {
+                        ui vvv = ccc.next;
                         if (vvv < i) continue;
                         onestep_reach[vvv] = false;
                     }
@@ -372,102 +422,103 @@ public:
     void solveInSubGraph(vector<ui>* scc)
     {
         sort(scc->begin(), scc->end());
-        for (ui &w: *scc)
-        {
-            for (vector<ui>::iterator iter = G[w].begin(); iter != G[w].end(); )
-            {
-                if (!binary_search(scc->begin(),scc->end(),*iter))
-                    iter = G[w].erase(iter); // advances iter
-                else
-                    ++iter; // don't remove
-            }
-        }
+        //for (ui &w: *scc)
+        //{
+        //    for (vector<connection>::iterator iter = G[w].begin(); iter != G[w].end(); )
+        //    {
+        //        if (!binary_search(scc->begin(),scc->end(),*iter))
+        //            iter = G[w].erase(iter); // advances iter
+        //        else
+        //            ++iter; // don't remove
+        //    }
+        //}
         vector<int> path;
-        for (vector<ui>::iterator iter = scc->begin(); iter != scc->end() - 2; iter++)
+        //for (vector<ui>::iterator iter = scc->begin(); iter != scc->end() - 2; iter++)
+        //{
+        //    ui i = *iter;
+        //    for (ui& v : invG[i])
+        //    {
+        //        if (v < i) continue;
+        //        onestep_reach[v] = true;
+        //        for (ui& vv : invG[v])
+        //        {
+        //            if (vv < i) continue;
+        //            onestep_reach[vv] = true;
+        //            for (ui& vvv : invG[vv])
+        //            {
+        //                if (vvv < i) continue;
+        //                onestep_reach[vvv] = true;
+        //            }
+        //        }
+        //    }
+
+        //    if (!G[i].empty()) {
+        //        dfs(i, i, i, 1, path);
+        //    }
+
+        //    for (ui& v : invG[i])
+        //    {
+        //        if (v < i) continue;
+        //        onestep_reach[v] = false;
+        //        for (ui& vv : invG[v])
+        //        {
+        //            if (vv < i) continue;
+        //            onestep_reach[vv] = false;
+        //            for (ui& vvv : invG[vv])
+        //            {
+        //                if (vvv < i) continue;
+        //                onestep_reach[vvv] = false;
+        //            }
+        //        }
+        //    }
+        //}
+    }
+
+    void save(string &outputFile) {
+        int ansSize = 0;
+        for (int i = 0; i < 5; i++)
         {
-            ui i = *iter;
-            for (ui& v : invG[i])
-            {
-                if (v < i) continue;
-                onestep_reach[v] = true;
-                for (ui& vv : invG[v])
-                {
-                    if (vv < i) continue;
-                    onestep_reach[vv] = true;
-                    for (ui& vvv : invG[vv])
-                    {
-                        if (vvv < i) continue;
-                        onestep_reach[vvv] = true;
-                    }
-                }
-            }
-
-            if (!G[i].empty()) {
-                dfs(i, i, i, 1, path);
-            }
-
-            for (ui& v : invG[i])
-            {
-                if (v < i) continue;
-                onestep_reach[v] = false;
-                for (ui& vv : invG[v])
-                {
-                    if (vv < i) continue;
-                    onestep_reach[vv] = false;
-                    for (ui& vvv : invG[vv])
-                    {
-                        if (vvv < i) continue;
-                        onestep_reach[vvv] = false;
-                    }
-                }
+            ansSize += ans[i].size();
+        }
+        ofstream out(outputFile);
+        out << ansSize << endl;
+        for (int i = 0; i < 5; i++)
+        {
+            for (auto& x : ans[i]) {
+                auto path = x.path;
+                int sz = path.size();
+                out << path[0];
+                for (int i = 1; i < sz; i++)
+                    out << "," << path[i];
+                out << endl;
             }
         }
     }
+    //void save(string& outputFile) {
+    //    int count = 0;
+    //    for (int i = 0; i < 5; i++) 
+    //        count += ans[i].size();
+    //    FILE* fp = fopen(outputFile.c_str(), "w");
 
-    //void save(string &outputFile) {
-    //    int ansSize = 0;
-    //    for (int i = 0; i < 5; i++)
-    //    {
-    //        ansSize += ans[i].size();
-    //    }
-    //    ofstream out(outputFile);
-    //    out << ansSize << endl;
-    //    for (int i = 0; i < 5; i++)
-    //    {
-    //        for (auto& x : ans[i]) {
-    //            auto path = x.path;
-    //            int sz = path.size();
-    //            out << path[0];
-    //            for (int i = 1; i < sz; i++)
-    //                out << "," << path[i];
-    //            out << endl;
+    //    char* p = new char[(ull)count*80 + 11];
+    //    char* pp = (char*)p;
+    //    pp += append_uint_to_str(pp, count);
+    //    pp[-1] = '\n';
+
+    //    for (int i = 0; i < 5; i++) {
+    //        for (int j = 0; j < ans[i].size(); j++) {
+    //            for (ui &k:ans[i][j].path)
+    //            {
+    //                pp += append_uint_to_str(pp, k);
+    //            }
+    //            pp[-1] = '\n';
     //        }
     //    }
+
+    //    fwrite(p, 1, pp - p, fp);
+
+    //    fclose(fp);
     //}
-    void save(string& outputFile) {
-        int count = 0;
-        for (int i = 0; i < 5; i++) {
-                count += ans[i].size();
-        }
-        FILE* fp = fopen(outputFile.c_str(), "w");
-
-        char* p = new char[count*80];
-        char* pp = (char*)p;
-        pp += append_uint_to_str(pp, count);
-        pp[-1] = '\n';
-
-        for (int i = 0; i < 5; i++) {
-            for (int j = 0; j < ans[i].size(); j++) {
-                for (ui &k:ans[i][j].path)
-                {
-                    pp += append_uint_to_str(pp, k);
-                }
-                pp[-1] = '\n';
-            }
-        }
-
-        fwrite(p, 1, pp - p, fp);
-    }
 };
 
 
