@@ -196,9 +196,9 @@ public:
 	//vector<int> inDegrees;
 	vector<vector<bool>> vis;
 	//    vector<vector<Path>> ans_arr;
-	char* ans[5][thread_cnt];
-	int n_ans[5][thread_cnt];
-	ui ans_top[5][thread_cnt];
+	char* ans[6][thread_cnt];
+	int n_ans[6][thread_cnt];
+	ui ans_top[6][thread_cnt];
 	int nodeCnt;
 	long long* direct_reach;
 	bool* onestep_reach;
@@ -354,31 +354,30 @@ public:
 				n_ans[depth - 3][thread_num]++;
 				ans[depth - 3][thread_num][ans_top[depth - 3][thread_num] - 1] = '\n';
 			}
-			else if (depth <7 && !vis[thread_num][v] && v > head
+			else if (depth < 8 && !vis[thread_num][v] && v > head
 				&& (five * amount >= preAmount && amount <= three * preAmount)
 				)
 			{
 				if (depth < 4)
 					dfs(head, v, depth + 1, thread_num, path_new, path_head, startAmount, amount);
-				else if (depth < 6)
+				else if (depth < 7)
 				{
 					if (onestep_reach[thread_num * nodeCnt + v])
 						dfs(head, v, depth + 1, thread_num, path_new, path_head, startAmount, amount);
 				}
-
 				else if (direct_reach[thread_num * nodeCnt + v]) {
 					long long amount_final = direct_reach[thread_num * nodeCnt + v];
 					if ((five * amount_final >= amount && amount_final <= three * amount) &&
 						(five * startAmount >= amount_final && startAmount <= three * amount_final))
 					{
-						int len7 = idsStrIndex[v + 1] - idsStrIndex[v];
-						memcpy(path_new, &idsStr[idsStrIndex[v]], len7 * sizeof(char));
-						path_new += len7;
-						memcpy(&ans[4][thread_num][ans_top[4][thread_num]], path_head, path_new - path_head);
-						ans_top[4][thread_num] += path_new - path_head;
-						n_ans[4][thread_num]++;
-						ans[4][thread_num][ans_top[4][thread_num] - 1] = '\n';
-						path_new -= len7;
+						int len8 = idsStrIndex[v + 1] - idsStrIndex[v];
+						memcpy(path_new, &idsStr[idsStrIndex[v]], len8 * sizeof(char));
+						path_new += len8;
+						memcpy(&ans[5][thread_num][ans_top[5][thread_num]], path_head, path_new - path_head);
+						ans_top[5][thread_num] += path_new - path_head;
+						n_ans[5][thread_num]++;
+						ans[5][thread_num][ans_top[5][thread_num] - 1] = '\n';
+						path_new -= len8;
 					}
 				}
 			}
@@ -416,6 +415,12 @@ public:
 						ui vvv = ccc.next;
 						if (vvv < i) continue;
 						onestep_reach[vvv + thread_num * nodeCnt] = true;
+						for (connection& cccc : invG[vvv])
+						{
+							ui vvvv = ccc.next;
+							if (vvvv < i) continue;
+							onestep_reach[vvvv + thread_num * nodeCnt] = true;
+						}
 					}
 				}
 			}
@@ -441,6 +446,12 @@ public:
 						ui vvv = ccc.next;
 						if (vvv < i) continue;
 						onestep_reach[vvv + thread_num * nodeCnt] = false;
+						for (connection& cccc : invG[vvv])
+						{
+							ui vvvv = ccc.next;
+							if (vvvv < i) continue;
+							onestep_reach[vvvv + thread_num * nodeCnt] = true;
+						}
 					}
 				}
 			}
@@ -453,21 +464,24 @@ public:
 
 		for (int i = 0; i < thread_cnt; i++)
 		{
-			ans[0][i] = new char[3 * 500000 * 40];
-			ans[1][i] = new char[4 * 500000 * 50];
-			ans[2][i] = new char[5 * 1000000 * 60];
-			ans[3][i] = new char[6 * 2000000 * 70];
-			ans[4][i] = new char[7 * 3000000 * 80];
+			ans[0][i] = new char[1000000 * 40];
+			ans[1][i] = new char[2000000 * 50];
+			ans[2][i] = new char[3000000 * 60];
+			ans[3][i] = new char[4000000 * 70];
+			ans[4][i] = new char[10000000 * 80];
+			ans[5][i] = new char[15000000 * 90];
 			ans_top[0][i] = 0;
 			ans_top[1][i] = 0;
 			ans_top[2][i] = 0;
 			ans_top[3][i] = 0;
 			ans_top[4][i] = 0;
+			ans_top[5][i] = 0;
 			n_ans[0][i] = 0;
 			n_ans[1][i] = 0;
 			n_ans[2][i] = 0;
 			n_ans[3][i] = 0;
 			n_ans[4][i] = 0;
+			n_ans[5][i] = 0;
 		}
 
 		vis = vector<vector<bool>>(thread_cnt, vector<bool>(nodeCnt, false));
@@ -494,13 +508,13 @@ public:
 
 	void save(string& outputFile) {
 		int count = 0;
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < 6; i++) {
 			for (int j = 0; j < thread_cnt; j++)
 				count += n_ans[i][j];
 		}
 		ofstream out(outputFile);
 		out << count << '\n';
-		for (int i = 0; i < 5; i++)
+		for (int i = 0; i < 6; i++)
 		{
 			for (int j = 0; j < thread_cnt; j++)
 				out.write((char*)ans[i][j], ans_top[i][j]);
@@ -569,7 +583,7 @@ int main()
 {
 #ifdef _WIN64
 	//string testFile = "./temp_data/2755223/test_data.txt";
-	string testFile = "./data/official/test_data.txt";
+	string testFile = "./data/fusai_final/test_data.txt";
 	clock_t start, finish;
 	double totaltime;
 	start = clock();
@@ -580,7 +594,7 @@ int main()
 #endif
 
 #ifdef _WIN64
-	string outputFile = "./data/official/myresults.txt";
+	string outputFile = "./data/myresults.txt";
 #else
 	string outputFile = "/projects/student/result.txt";
 #endif 
