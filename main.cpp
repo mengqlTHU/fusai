@@ -192,7 +192,7 @@ public:
 	char* idsStr;
 	int* idsStrIndex;
 	vector<ui> inputs; //u-v pairs
-	vector<uint32_t> inputs_amount;
+	vector<long long> inputs_amount;
 	//vector<int> inDegrees;
 	vector<vector<bool>> vis;
 	//    vector<vector<Path>> ans_arr;
@@ -204,7 +204,8 @@ public:
 	bool* onestep_reach;
 
 	void parseInput(string& testFile) {
-		ui u, v; int c;
+		ui u, v; long long c;
+		short decimals;
 		// while(fscanf(file,"%u,%u,%u",&u,&v,&c)!=EOF){
 		//     inputs.push_back(u);
 		//     inputs.push_back(v);
@@ -225,7 +226,7 @@ public:
 		nodeCnt = 0;
 		while (pp - p < length)
 		{
-			u = 0; v = 0; c = 0;
+			u = 0; v = 0; c = 0; decimals = 0;
 			while (*pp != ',')
 			{
 				u = (*pp++ - '0') + u * 10;
@@ -238,8 +239,21 @@ public:
 			pp++;
 			while (*pp != '\n')
 			{
-				c = (*pp++ - '0') + c * 10;
+				if (*pp == '.')
+				{
+					decimals = 1;
+					pp++;
+				}
+				else
+				{
+					c = (*pp++ - '0') + c * 10;
+					if (decimals) decimals++;
+				}
 			}
+			if (decimals == 0)
+				c *= 100;
+			else if (decimals == 2)
+				c *= 10;
 			pp++;
 			inputs.push_back(u);
 			inputs.push_back(v);
