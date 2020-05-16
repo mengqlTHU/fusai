@@ -8,6 +8,14 @@
 #include<fstream>
 #else
 #include <bits/stdc++.h>
+#include <sys/mman.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
 #endif // 
 
 #define NIL -1 
@@ -62,17 +70,28 @@ struct connection {
     }
 };
 
-int sizeTable[10] = { 9, 99, 999, 9999, 99999, 999999, 9999999,
-  99999999, 999999999, INT32_MAX };
+int sizeTable[9] = { 9, 99, 999, 9999, 99999, 999999, 9999999,
+  99999999, 999999999};
 
-
-
-inline int intSize(unsigned int x)
+int intSize(int x)
 {
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 9; ++i)
     {
         if (x <= sizeTable[i]) return i + 1;
     }
+    return 10;
+};
+
+int append_uint_to_str(char* s, unsigned int i, int size)
+{
+    s[size] = ',';
+    int tmp = size;
+    while (i > 0)
+    {
+        s[--size] = '0' + i % 10;
+        i /= 10;
+    }
+    return tmp + 1;
 };
 
 const char digit_pairs[201] = {
@@ -86,26 +105,6 @@ const char digit_pairs[201] = {
   "70717273747576777879"
   "80818283848586878889"
   "90919293949596979899"
-};
-
-inline int append_uint_to_str(char* s, unsigned int i)
-{
-    int size = intSize(i);
-    s[size] = ',';
-    char* c = &s[size - 1];
-    while (i >= 100)
-    {
-        int pos = i % 100;
-        i /= 100;
-        *(short*)(c - 1) = *(short*)(digit_pairs + 2 * pos);
-        c -= 2;
-    }
-    while (i > 0)
-    {
-        *c-- = '0' + (i % 10);
-        i /= 10;
-    }
-    return size + 1;
 };
 
 class Solution {
@@ -481,7 +480,7 @@ public:
             ansSize += ans[i].size();
         }
         ofstream out(outputFile);
-        out << ansSize << endl;
+        out << ansSize << '\n';
         for (int i = 0; i < 5; i++)
         {
             for (auto& x : ans[i]) {
@@ -490,33 +489,100 @@ public:
                 out << path[0];
                 for (int i = 1; i < sz; i++)
                     out << "," << path[i];
-                out << endl;
+                out << '\n';
             }
         }
     }
+
+#ifndef _WIN64
+    void save_mmap(string& outputFile)
+    {
+        int count = 0;
+        for (int i = 0; i < 5; i++) 
+            count += ans[i].size();
+        char* p = new char[(ull)count*80/5 + 11];
+        char* pp = (char*)p;
+        pp += append_uint_to_str(pp, count, intSize(count));
+        pp[-1] = '\n';
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < ans[i].size(); j++) {
+                for (ui &k:ans[i][j].path)
+                {
+                    pp += append_uint_to_str(pp, k, intSize(k));
+                }
+                pp[-1] = '\n';
+            }
+        }
+
+        int fd = open(outputFile.c_str(), O_RDWR | O_CREAT, (mode_t)0666);
+        size_t textsize = pp - p + 1;
+        lseek(fd, textsize - 1, SEEK_SET);
+        write(fd, "", 1);
+        char* map = (char*)mmap(0, textsize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        memcpy(map, p, pp - p);
+        msync(map, textsize, MS_SYNC);
+        close(fd);
+    }
+#endif
+
+    //void save(string& outputFile)
+    //{
+    //    int ansSize = 0;
+    //    for (int i = 0; i < 5; i++)
+    //    {
+    //        ansSize += ans[i].size();
+    //    }
+    //    ofstream out(outputFile);
+    //    out << ansSize << endl;
+    //    for (int i = 0; i < 4; i++)
+    //    {
+    //        for (auto& x : ans[i]) {
+    //            auto path = x.path;
+    //            int sz = path.size();
+    //            out << path[0];
+    //            for (int i = 1; i < sz; i++)
+    //                out << "," << path[i];
+    //            out << endl;
+    //        }
+    //    }
+    //    FILE* fp = fopen(outputFile.c_str(), "a");
+    //    char* p = new char[(ull)ansSize * 40 + 11];
+    //    char* pp = (char*)p;
+    //    for (int j = 0; j < ans[4].size(); j++) {
+    //        for (ui& k : ans[4][j].path)
+    //        {
+    //            pp += append_uint_to_str(pp, k, intSize(k));
+    //        }
+    //        pp[-1] = '\n';
+    //    }
+    //    fwrite(p, 1, pp - p, fp);
+    //    fclose(fp);
+    //}
+
     //void save(string& outputFile) {
     //    int count = 0;
     //    for (int i = 0; i < 5; i++) 
     //        count += ans[i].size();
     //    FILE* fp = fopen(outputFile.c_str(), "w");
-
     //    char* p = new char[(ull)count*80 + 11];
     //    char* pp = (char*)p;
-    //    pp += append_uint_to_str(pp, count);
+    //    pp += append_uint_to_str(pp, count, intSize(count));
     //    pp[-1] = '\n';
-
+    //    //*pp = '\n';
+    //    //pp++;
     //    for (int i = 0; i < 5; i++) {
     //        for (int j = 0; j < ans[i].size(); j++) {
     //            for (ui &k:ans[i][j].path)
     //            {
-    //                pp += append_uint_to_str(pp, k);
+    //                pp += append_uint_to_str(pp, k, intSize(k));
     //            }
     //            pp[-1] = '\n';
+    //            //*pp = '\n';
+    //            //pp++;
     //        }
     //    }
-
     //    fwrite(p, 1, pp - p, fp);
-
+    //    //fprintf(fp, );
     //    fclose(fp);
     //}
 };
@@ -532,6 +598,12 @@ void solve(string testFile,string outputFile){
     //    solution.solveSCC();
     solution.solve();
     solution.save(outputFile);
+
+//#ifdef _WIN64
+//    solution.save(outputFile);
+//#else
+//    solution.save_mmap(outputFile);
+//#endif
 }
 
 int main() {
@@ -545,7 +617,7 @@ int main() {
 
 #ifdef _WIN64
     string testFile = "../data/official/test_data.txt";
-    //string testFile = "../temp_data/1004812/test_data.txt";
+    //string testFile = "../temp_data/2755223/test_data.txt";
     string outputFile = "../data/official/myresult.txt";
 #else
     string testFile = "/data/test_data.txt";
