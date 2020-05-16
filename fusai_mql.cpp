@@ -27,7 +27,7 @@
 
 using namespace std;
 
-#define thread_cnt 4
+#define thread_cnt 1
 #define five (long long)5
 #define three (long long)3
 
@@ -85,10 +85,11 @@ int sizeTable[10] = { 9, 99, 999, 9999, 99999, 999999, 9999999,
 
 inline int intSize(unsigned int x)
 {
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 9; ++i)
 	{
 		if (x <= sizeTable[i]) return i + 1;
 	}
+	return 10;
 };
 
 const char digit_pairs[201] = {
@@ -237,7 +238,7 @@ public:
 				v = (*pp++ - '0') + v * 10;
 			}
 			pp++;
-			while (*pp != '\n')
+			while (*pp != '\n' && *pp != '\r')
 			{
 				if (*pp == '.')
 				{
@@ -250,6 +251,7 @@ public:
 					if (decimals) decimals++;
 				}
 			}
+			if(*pp=='\r') pp++;
 			if (decimals == 0)
 				c *= 100;
 			else if (decimals == 2)
